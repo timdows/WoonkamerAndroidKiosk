@@ -1,6 +1,8 @@
 <resources><style name="Theme.WoonkamerKiosk" parent="android:style/Theme.Material.Light.NoActionBar">
  <item name="android:fontFamily">sans</item>
- <item name="android:colorAccent">#176B45</item>
+ <item name="android:colorAccent">#23664A</item>
  <item name="android:windowLightStatusBar">true</item>
- <item name="android:windowBackground">#F3F6F2</item>
+ <item name="android:windowLightNavigationBar">true</item>
+ <item name="android:windowBackground">#F6F3EC</item>
+ <item name="android:windowActionModeOverlay">true</item>
 </style></resources>

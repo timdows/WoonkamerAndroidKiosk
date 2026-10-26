@@ -8,14 +8,19 @@ Build variants
 - kioskTrial: explicitly enabled supervised activation; test-only APK.
   Installation never starts Lock Task automatically.
 
-Administrator access uses Android device-credential verification, expires after
+Administrator access uses a separate 6-12 digit PIN, expires after
 30 seconds and is dismissed when leaving the app. A supervised trial requires
-Device Owner, a secure unlocked device, enabled required apps, Samsung Phone as
+Device Owner, a configured administrator PIN, an unlocked device, enabled required apps, Samsung Phone as
 default dialer, and explicit confirmation of call testing and recovery access.
 Stopping restores saved Lock Task policy. Device Owner remains installed.
 
-Notifications, Home, system information, power menu and keyguard are retained
-in Lock Task. Incoming-call behavior must be validated on the target firmware.
+Notifications, Home, system information and power menu are retained
+in Lock Task. Keyguard is omitted while locked to the kiosk, preserving the device
+pattern outside the kiosk. A foreground service holds a screen wake lock across
+allowed apps, releases it on exit and stops when Lock Task ends. The power button,
+call proximity behavior, battery exhaustion and OS restrictions can still turn
+the screen off. Continuous display use consumes power; moderate brightness and
+a charger are recommended. Incoming-call behavior must be validated on the target firmware.
 Package allowlisting does not restrict every screen within each allowed app.
 Automatic activation after reboot is intentionally not implemented.
 
@@ -38,3 +43,15 @@ are external test prerequisites; no fixed test credential is included here.
 
 SDK paths, IDE state, APKs, build reports, private notes and captured device
 screenshots are excluded from version control.
+
+Administrator PINs use salted PBKDF2 and a device-bound Android Keystore HMAC; no
+plaintext PIN is stored or backed up. Five failed attempts impose a persisted
+30-second delay. First-time setup requires the existing device credential when
+one exists. Lost credentials require the ADB development recovery route; no
+default or remote PIN bypass exists. New credentials are entered on-device only.
+
+
+The home screen shows the family-phone title, two launch cards and a large
+24-hour clock at the bottom. There is no greeting or other surrounding copy.
+Mobile data and Wi-Fi settings are managed through Android by the administrator;
+this application does not monitor connectivity or suspend Spotify on Wi-Fi loss.

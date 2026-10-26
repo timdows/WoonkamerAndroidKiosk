@@ -11,12 +11,12 @@ import android.telecom.TelecomManager
 object KioskPlan {
  const val SPOTIFY = "com.spotify.music"
  const val DIALER = "com.samsung.android.dialer"
- // Candidate only; verify this component on the actual S22 firmware.
+ // Candidate only; verify this component on the target device firmware.
  const val INCALL = "com.samsung.android.incallui"
- fun blockReason(enabled: Boolean, owner: Boolean, secure: Boolean, supervisedTrialConfirmed: Boolean): String? = when {
+ fun blockReason(enabled: Boolean, owner: Boolean, adminPinConfigured: Boolean, supervisedTrialConfirmed: Boolean): String? = when {
   !enabled -> "Deze voorbereidingsbuild kan kioskmodus niet activeren."
   !owner -> "Device Owner is nog niet ingesteld."
-  !secure -> "Stel eerst een uitsluitend door de beheerder bekende schermcode in."
+  !adminPinConfigured -> "Stel eerst een aparte beheer-PIN in."
   !supervisedTrialConfirmed -> "Bevestig eerst de begeleide proef en hersteltoegang."
   else -> null
  }
@@ -30,7 +30,7 @@ class KioskController(private val activity: Activity) {
  // Re-evaluate prerequisites on every attempt, before any policy mutation.
  fun activationBlockReason(supervisedTrialConfirmed: Boolean): String? {
   KioskPlan.blockReason(BuildConfig.KIOSK_ACTIVATION_ENABLED, isOwner,
-   activity.getSystemService(KeyguardManager::class.java).isDeviceSecure,
+   AdminPinStore(activity).isConfigured,
    supervisedTrialConfirmed)?.let { return it }
   if (isLocked) return "Kioskmodus is al actief."
   if (prefs.contains("oldFeatures")) return "Herstel eerst eerder kioskbeleid met Kiosk stoppen."
@@ -55,18 +55,19 @@ class KioskController(private val activity: Activity) {
    dpm.setLockTaskPackages(admin, packages.toTypedArray())
    dpm.setLockTaskFeatures(admin, DevicePolicyManager.LOCK_TASK_FEATURE_HOME or
     DevicePolicyManager.LOCK_TASK_FEATURE_NOTIFICATIONS or DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO or
-    DevicePolicyManager.LOCK_TASK_FEATURE_GLOBAL_ACTIONS or DevicePolicyManager.LOCK_TASK_FEATURE_KEYGUARD)
+    DevicePolicyManager.LOCK_TASK_FEATURE_GLOBAL_ACTIONS)
    val home = IntentFilter(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME); addCategory(Intent.CATEGORY_DEFAULT) }
    dpm.addPersistentPreferredActivity(admin, home, ComponentName(activity, MainActivity::class.java))
    check(dpm.isLockTaskPermitted(activity.packageName))
    activity.startLockTask()
    check(isLocked) { "Lock Task niet bevestigd" }
+   KioskAwakeService.start(activity)
   } catch (e: Exception) {
    try { exitAfterAuthentication() } catch (rollbackFailure: Exception) { e.addSuppressed(rollbackFailure) }
    throw e
   }
  }
- // Caller authenticates with the Android device credential. Device Owner remains.
+ // Caller authenticates with the separate administrator PIN. Device Owner remains.
  fun exitAfterAuthentication() {
   val hasSnapshot = prefs.contains("oldFeatures")
   check(!hasSnapshot || isOwner) { "Device Owner ontbreekt; opgeslagen beleid kan niet worden hersteld" }
@@ -74,6 +75,7 @@ class KioskController(private val activity: Activity) {
   fun attempt(action: () -> Unit) {
    try { action() } catch (e: Exception) { failures.add(e) }
   }
+  attempt { KioskAwakeService.stop(activity) }
   if (isLocked) attempt { activity.stopLockTask() }
   if (hasSnapshot) {
    attempt { dpm.setLockTaskPackages(admin, prefs.getStringSet("oldPackages", emptySet())!!.toTypedArray()) }

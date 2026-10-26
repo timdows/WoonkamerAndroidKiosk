@@ -26,7 +26,7 @@ class SmokeInstrumentation : Instrumentation() {
     fun texts(v: View): List<TextView> = (if(v is TextView) listOf(v) else emptyList()) +
      (if(v is ViewGroup) (0 until v.childCount).flatMap { texts(v.getChildAt(it)) } else emptyList())
     val views = texts(a.window.decorView)
-    check(views.filterIsInstance<Button>().map { it.text.toString() }.containsAll(listOf("Spotify","Samsung Telefoon","Beheerder")))
+    check(views.map { it.text.toString() }.containsAll(listOf("Spotify","Bellen","Beheer")))
     val controller = KioskController(a)
     check(!controller.isLocked && !controller.isOwner)
     var blocked = false
@@ -34,9 +34,35 @@ class SmokeInstrumentation : Instrumentation() {
     check(blocked && !controller.isLocked)
     check(!a.getSharedPreferences("kiosk-policy",0).contains("oldFeatures"))
    }
-   result.putString("stream", "PASS: startscherm, drie knoppen, geen Device Owner/Lock Task, activering geblokkeerd zonder beleidsopslag.\n")
+   // Exercise the real device-bound verifier and persistent rate limit on emulator only.
+   val pins = AdminPinStore(targetContext)
+   val random = java.security.SecureRandom()
+   val pin = CharArray(8) { ('0'.code + random.nextInt(10)).toChar() }
+   val wrong = pin.copyOf().apply { this[0] = if(this[0] == '9') '0' else this[0] + 1 }
+   try {
+    pins.configure(pin)
+    check(pins.isConfigured && pins.verify(pin))
+    repeat(5) { check(!pins.verify(wrong)) }
+    check(pins.remainingWaitMillis() > 0)
+    check(!pins.verify(pin)) { "Rate limit must also block the correct PIN until timeout" }
+    check(pins.remainingWaitMillis(System.currentTimeMillis()+31_000) == 0L)
+   } finally { pin.fill(' '); wrong.fill(' ') }
+   result.putString("stream", "PASS: startscherm, aparte PIN met Keystore en wachttijd, geen Device Owner/Lock Task, activering geblokkeerd zonder beleidsopslag.\n")
    finish(Activity.RESULT_OK, result)
   } catch(e: Throwable) {
+   // Exercise the real device-bound verifier and persistent rate limit on emulator only.
+   val pins = AdminPinStore(targetContext)
+   val random = java.security.SecureRandom()
+   val pin = CharArray(8) { ('0'.code + random.nextInt(10)).toChar() }
+   val wrong = pin.copyOf().apply { this[0] = if(this[0] == '9') '0' else this[0] + 1 }
+   try {
+    pins.configure(pin)
+    check(pins.isConfigured && pins.verify(pin))
+    repeat(5) { check(!pins.verify(wrong)) }
+    check(pins.remainingWaitMillis() > 0)
+    check(!pins.verify(pin)) { "Rate limit must also block the correct PIN until timeout" }
+    check(pins.remainingWaitMillis(System.currentTimeMillis()+31_000) == 0L)
+   } finally { pin.fill(' '); wrong.fill(' ') }
    result.putString("stream", "FAIL: ${e.stackTraceToString()}")
    finish(Activity.RESULT_CANCELED, result)
   } finally { activity?.let { a -> runOnMainSync { a.finish() } } }
