@@ -78,7 +78,7 @@ class LockTaskInstrumentation : Instrumentation() {
             SystemClock.sleep(4_000)
             check(targetContext.getSystemService(PowerManager::class.java).isInteractive) { "Screen did not stay awake across apps" }
             runOnMainSync { a.startActivity(Intent(a,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-            clickText("Beheer")
+            runOnMainSync { repeat(10) { a.findViewById<android.widget.TextClock>(R.id.admin_clock).performClick() } }
             val field = awaitNode { it.isEditable }
             check(field.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,Bundle().apply {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,String(pin))

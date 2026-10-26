@@ -23,6 +23,7 @@ class MainActivity : Activity() {
     private var awaitingSetupCredential = false
     private val worker = Executors.newSingleThreadExecutor()
     private var authEpoch = 0
+    private var clockTapCount = 0
     private val ink = Color.rgb(30, 49, 40)
     private val cream = Color.rgb(246, 243, 236)
 
@@ -45,21 +46,35 @@ class MainActivity : Activity() {
         }
         val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         top.addView(label("Gezellige gezins telefoon", 19f, ink, true).apply { isAccessibilityHeading = true; setPadding(0,0,16.dp,0) }, LinearLayout.LayoutParams(0, -2, 1f))
-        top.addView(Button(this).apply {
-            text = "Beheer"; textSize = 14f; isAllCaps = false
-            background = shape(Color.TRANSPARENT, 24f, Color.rgb(214, 218, 206))
-            minHeight = 48.dp; minimumWidth = 88.dp
-            setTextColor(ink); setOnClickListener { authenticate() }
-        }, LinearLayout.LayoutParams(-2,48.dp))
         page.addView(top)
         page.addView(Space(this), LinearLayout.LayoutParams(1,32.dp))
         page.addView(card("Spotify", "Zet iets moois op", "MUZIEK VOOR JOU", Color.rgb(28,51,42), Color.WHITE,
             Color.rgb(160,226,160), android.R.drawable.ic_media_play, "Spotify openen") { launch(KioskPlan.SPOTIFY) })
         page.addView(Space(this), LinearLayout.LayoutParams(1,16.dp))
-        page.addView(card("Bellen", "Even iemand horen", "DICHTBIJ, OP AFSTAND", Color.rgb(230,218,196), ink,
-            Color.rgb(250,247,237), android.R.drawable.ic_menu_call, "Samsung Telefoon openen") { launch(KioskPlan.DIALER) })
+        val lowerCards = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        lowerCards.addView(card("Bellen", "Even iemand horen", "", Color.rgb(230,218,196), ink,
+            Color.rgb(250,247,237), android.R.drawable.ic_menu_call, "Samsung Telefoon openen", compact = true) { launch(KioskPlan.DIALER) },
+            LinearLayout.LayoutParams(0,-2,1f))
+        lowerCards.addView(Space(this),LinearLayout.LayoutParams(14.dp,1))
+        lowerCards.addView(card("Home\nAssistant", "Alles voor thuis", "", Color.rgb(210,229,232), ink,
+            Color.rgb(244,251,250), R.drawable.ic_kiosk_notification, "Home Assistant openen", compact = true) {
+                val pkg = kiosk.homeAssistantPackage()
+                if (pkg == null) message("Home Assistant ontbreekt", "Installeer en configureer de Home Assistant-app eerst buiten kioskmodus.")
+                else launch(pkg)
+            },LinearLayout.LayoutParams(0,-2,1f))
+        page.addView(lowerCards,LinearLayout.LayoutParams(-1,-2))
         page.addView(Space(this), LinearLayout.LayoutParams(1,0,1f))
         page.addView(TextClock(this).apply {
+            id = R.id.admin_clock
+            isSoundEffectsEnabled = false
+            isHapticFeedbackEnabled = false
+            setOnClickListener {
+                clockTapCount++
+                if (clockTapCount == 10) {
+                    clockTapCount = 0
+                    authenticate()
+                }
+            }
             // Both formats are explicit so the clock stays 24h even on a 12h-configured device.
             format12Hour = "HH:mm"; format24Hour = "HH:mm"
             textSize = 76f; setTextColor(ink)
@@ -80,11 +95,12 @@ class MainActivity : Activity() {
         stroke?.let { setStroke(1.dp,it) }
     }
     private fun card(title: String, subtitle: String, eyebrow: String, backgroundColor: Int,
-        textColor: Int, accent: Int, icon: Int, description: String, action: () -> Unit): LinearLayout {
+        textColor: Int, accent: Int, icon: Int, description: String, compact: Boolean = false, action: () -> Unit): LinearLayout {
         return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; setPadding(24.dp,22.dp,24.dp,24.dp)
+            orientation = LinearLayout.VERTICAL
+            if (compact) setPadding(18.dp,18.dp,18.dp,20.dp) else setPadding(24.dp,22.dp,24.dp,24.dp)
             background = shape(backgroundColor,28f)
-            minimumHeight = 190.dp; elevation = 1.dp.toFloat()
+            minimumHeight = (if(compact) 220 else 190).dp; elevation = 1.dp.toFloat()
             isClickable = true; isFocusable = true; contentDescription = description
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             accessibilityDelegate = object : View.AccessibilityDelegate() {
@@ -96,14 +112,14 @@ class MainActivity : Activity() {
                 orientation = LinearLayout.VERTICAL; importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             }
             val row = LinearLayout(this@MainActivity).apply { gravity = Gravity.CENTER_VERTICAL }
-            row.addView(label(eyebrow,11f,textColor,true), LinearLayout.LayoutParams(0,-2,1f))
+            if (!compact) row.addView(label(eyebrow,11f,textColor,true), LinearLayout.LayoutParams(0,-2,1f))
             row.addView(ImageView(this@MainActivity).apply {
                 setImageResource(icon); setColorFilter(if (textColor == Color.WHITE) backgroundColor else textColor); setPadding(12.dp,12.dp,12.dp,12.dp)
                 background = shape(accent,32f)
             }, LinearLayout.LayoutParams(48.dp,48.dp))
             details.addView(row)
-            details.addView(label(title,30f,textColor,true).apply { setPadding(0,12.dp,0,4.dp) })
-            details.addView(label("$subtitle  ›",16f,textColor))
+            details.addView(label(title,if(compact) 23f else 30f,textColor,true).apply { setPadding(0,12.dp,0,4.dp) })
+            details.addView(label("$subtitle  ›",if(compact) 14f else 16f,textColor))
             addView(details)
             setOnClickListener { action() }
         }
@@ -116,6 +132,7 @@ class MainActivity : Activity() {
         } else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
     private fun launch(pkg: String) {
+        clockTapCount = 0
         try {
             val intent = packageManager.getLaunchIntentForPackage(pkg)
                 ?: return message("App niet beschikbaar", "Installeer of schakel deze app eerst in.")
@@ -269,6 +286,7 @@ class MainActivity : Activity() {
         expire(dialog,session)
     }
     override fun onPause() {
+        clockTapCount = 0
         authEpoch++; activeDialog?.dismiss(); activeDialog = null; super.onPause()
     }
     override fun onDestroy() { worker.shutdown(); super.onDestroy() }

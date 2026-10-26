@@ -6,8 +6,8 @@ android {
   applicationId = "nl.woonkamer.kiosk"
   minSdk = 28
   targetSdk = 36
-  versionCode = 3
-  versionName = "0.3"
+  versionCode = 6
+  versionName = "0.6"
   testInstrumentationRunner = providers.gradleProperty("kioskTestRunner").getOrElse("nl.woonkamer.kiosk.SmokeInstrumentation")
   buildConfigField("boolean", "KIOSK_ACTIVATION_ENABLED", "false")
  }

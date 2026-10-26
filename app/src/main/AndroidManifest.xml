@@ -4,8 +4,11 @@
  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
  <queries>
   <package android:name="com.spotify.music" />
+  <package android:name="io.homeassistant.companion.android" />
+  <package android:name="io.homeassistant.companion.android.minimal" />
   <package android:name="com.samsung.android.dialer" />
   <package android:name="com.samsung.android.incallui" />
+  <package android:name="com.android.server.telecom" />
  </queries>
  <application android:allowBackup="false" android:fullBackupContent="@xml/backup_rules" android:dataExtractionRules="@xml/data_extraction_rules" android:icon="@mipmap/ic_launcher" android:label="@string/app_name" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:theme="@style/Theme.WoonkamerKiosk">
   <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask" android:lockTaskMode="normal">

@@ -13,6 +13,10 @@ object KioskPlan {
  const val DIALER = "com.samsung.android.dialer"
  // Candidate only; verify this component on the target device firmware.
  const val INCALL = "com.samsung.android.incallui"
+ // Android Telecom owns the intermediate activities that initiate outgoing calls.
+ const val TELECOM = "com.android.server.telecom"
+ const val HOME_ASSISTANT = "io.homeassistant.companion.android"
+ const val HOME_ASSISTANT_MINIMAL = "io.homeassistant.companion.android.minimal"
  fun blockReason(enabled: Boolean, owner: Boolean, adminPinConfigured: Boolean, supervisedTrialConfirmed: Boolean): String? = when {
   !enabled -> "Deze voorbereidingsbuild kan kioskmodus niet activeren."
   !owner -> "Device Owner is nog niet ingesteld."
@@ -44,11 +48,16 @@ class KioskController(private val activity: Activity) {
    return "Stel Samsung Telefoon eerst in als standaard bel-app."
   return null
  }
- private val requiredPackages get() = listOf(activity.packageName, KioskPlan.SPOTIFY, KioskPlan.DIALER, KioskPlan.INCALL)
+ // Prefer the full app, falling back to the official minimal flavor when installed.
+ fun homeAssistantPackage(): String? = listOf(KioskPlan.HOME_ASSISTANT, KioskPlan.HOME_ASSISTANT_MINIMAL).firstOrNull { pkg ->
+  try { activity.packageManager.getApplicationInfo(pkg,0).enabled && activity.packageManager.getLaunchIntentForPackage(pkg) != null }
+  catch (_: android.content.pm.PackageManager.NameNotFoundException) { false }
+ }
+ private val requiredPackages get() = listOf(activity.packageName, KioskPlan.SPOTIFY, KioskPlan.DIALER, KioskPlan.INCALL, KioskPlan.TELECOM)
  fun startAfterReviewedProvisioning(supervisedTrialConfirmed: Boolean) {
   val reason = activationBlockReason(supervisedTrialConfirmed)
   check(reason == null) { reason ?: "Activering geblokkeerd" }
-  val packages = requiredPackages
+  val packages = requiredPackages + listOfNotNull(homeAssistantPackage())
   check(prefs.edit().putInt("oldFeatures", dpm.getLockTaskFeatures(admin))
    .putStringSet("oldPackages", dpm.getLockTaskPackages(admin).toSet()).commit())
   try {

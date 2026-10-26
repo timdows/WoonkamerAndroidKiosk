@@ -51,7 +51,22 @@ one exists. Lost credentials require the ADB development recovery route; no
 default or remote PIN bypass exists. New credentials are entered on-device only.
 
 
-The home screen shows the family-phone title, two launch cards and a large
+The home screen shows the family-phone title, three launch cards and a large
 24-hour clock at the bottom. There is no greeting or other surrounding copy.
 Mobile data and Wi-Fi settings are managed through Android by the administrator;
 this application does not monitor connectivity or suspend Spotify on Wi-Fi loss.
+
+Administrator entry is hidden: tap the clock ten times to open PIN verification.
+There is no visible administrator button, counter, hint or feedback. The tap
+sequence resets when leaving the activity or opening another app.
+
+Outgoing calls also require the Android Telecom system package in the Lock Task
+allowlist. Its intermediate call activities are distinct from Samsung Phone and
+the in-call interface. Messages and video calling are not part of the allowlist.
+
+Home Assistant is available beside Phone in the second row; Spotify remains a
+full-width card above, with the clock below. The installed full or minimal
+Companion app is detected and included in the Lock Task allowlist on activation.
+If neither flavor is installed, its card explains setup without blocking the
+rest of the kiosk. Configure the Companion app outside kiosk mode first. No
+server addresses or credentials are stored in this launcher.
