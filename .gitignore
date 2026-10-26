@@ -1,0 +1,29 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Generated Android output
+**/build/
+.kotlin/
+*.apk
+
+# Private local notes and manually captured screenshots
+/HANDLEIDING.txt
+/startscherm-emulator.png
+/.idea/
+*.jks
+*.keystore
+.env
+.env.*

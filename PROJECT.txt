@@ -1,0 +1,40 @@
+WoonkamerKiosk
+
+Kotlin Android launcher for Spotify and Samsung Phone, with guarded Device Owner
+and Lock Task preparation. Requires Android 9 or newer; targets Android 16.
+
+Build variants
+- debug/release: kiosk activation disabled.
+- kioskTrial: explicitly enabled supervised activation; test-only APK.
+  Installation never starts Lock Task automatically.
+
+Administrator access uses Android device-credential verification, expires after
+30 seconds and is dismissed when leaving the app. A supervised trial requires
+Device Owner, a secure unlocked device, enabled required apps, Samsung Phone as
+default dialer, and explicit confirmation of call testing and recovery access.
+Stopping restores saved Lock Task policy. Device Owner remains installed.
+
+Notifications, Home, system information, power menu and keyguard are retained
+in Lock Task. Incoming-call behavior must be validated on the target firmware.
+Package allowlisting does not restrict every screen within each allowed app.
+Automatic activation after reboot is intentionally not implemented.
+
+Build with the Gradle wrapper and a configured Android SDK:
+  gradlew assembleDebug assembleKioskTrial testDebugUnitTest lintDebug lintKioskTrial
+Additional variant tests:
+  gradlew testKioskTrialUnitTest testReleaseUnitTest -Pandroid.onlyEnableUnitTestForTheTestedBuildType=false
+
+The kioskTrial APK requires adb install -t. Only provision a test-only Device
+Owner after reviewing recovery access and backups. The ADB development recovery
+command is dpm remove-active-admin with this app's KioskAdminReceiver component.
+Do not replace a registered test-only owner with a non-test-only production
+build without reviewing the recovery implications.
+
+Instrumentation runners are emulator-only and excluded from application APKs.
+The Lock Task fixture uses the launcher only; it does not simulate real phone
+or Spotify behavior. Select it with the kioskTestRunner Gradle property set to
+nl.woonkamer.kiosk.LockTaskInstrumentation. Device Owner setup and credentials
+are external test prerequisites; no fixed test credential is included here.
+
+SDK paths, IDE state, APKs, build reports, private notes and captured device
+screenshots are excluded from version control.
